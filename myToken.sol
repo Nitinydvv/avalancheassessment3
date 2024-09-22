@@ -1,14 +1,37 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-contract MyToken is ERC20 {
+contract MyToken {
+    string public name;
+    string public symbol;
+    uint256 public totalSupply;
     address public owner;
 
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {
-        owner = msg.sender; // Contract deployer is set as the owner
-        _mint(msg.sender, 10000); // Mint initial supply to the owner
+    mapping(address => uint256) private _balances;
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
+    constructor(string memory _name, string memory _symbol) {
+        name = _name;
+        symbol = _symbol;
+        owner = msg.sender;
+        _mint(msg.sender, 1000000);
+    }
+
+    function balanceOf(address account) public view returns (uint256) {
+        return _balances[account];
+    }
+
+    function transfer(address recipient, uint256 amount) public returns (bool) {
+        require(recipient != address(0), "Transfer to zero address");
+        require(_balances[msg.sender] >= amount, "Not enough balance");
+
+        _balances[msg.sender] -= amount;
+        _balances[recipient] += amount;
+
+        emit Transfer(msg.sender, recipient, amount);
+        return true;
     }
 
     function mint(address account, uint256 amount) public {
@@ -16,14 +39,21 @@ contract MyToken is ERC20 {
         _mint(account, amount);
     }
 
-    function transfer(address recipient, uint256 amount) public override returns (bool) {
-
-        require(amount > 0, "Transfer amount must be greater than zero");
-
-        return super.transfer(recipient, amount);
-    }
-
     function burn(uint256 amount) public {
-        _burn(msg.sender, amount);
+        require(_balances[msg.sender] >= amount, "Not enough balance");
+        _balances[msg.sender] -= amount;
+        totalSupply -= amount;
+
+        emit Transfer(msg.sender, address(0), amount);
     }
+
+    function _mint(address account, uint256 amount) internal {
+        require(account != address(0), "Mint to zero address");
+
+        totalSupply += amount;
+        _balances[account] += amount;
+
+        emit Transfer(address(0), account, amount);
+    }
+
 }
